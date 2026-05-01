@@ -1,0 +1,113 @@
+// Year
+document.getElementById('year').textContent = new Date().getFullYear();
+
+// Reveal on scroll
+const io = new IntersectionObserver((entries) => {
+  entries.forEach((e) => {
+    if (e.isIntersecting) {
+      e.target.classList.add('in');
+      io.unobserve(e.target);
+    }
+  });
+}, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+document.querySelectorAll('[data-reveal]').forEach((el) => io.observe(el));
+
+// Mobile menu
+const menuBtn = document.querySelector('.menu-btn');
+const navLinks = document.querySelector('.nav-links');
+menuBtn?.addEventListener('click', () => {
+  const open = navLinks.classList.toggle('open');
+  menuBtn.setAttribute('aria-expanded', String(open));
+});
+navLinks?.querySelectorAll('a').forEach((a) =>
+  a.addEventListener('click', () => {
+    navLinks.classList.remove('open');
+    menuBtn?.setAttribute('aria-expanded', 'false');
+  })
+);
+
+// Card spotlight (cursor-aware glow)
+document.querySelectorAll('.card').forEach((card) => {
+  card.addEventListener('mousemove', (ev) => {
+    const r = card.getBoundingClientRect();
+    card.style.setProperty('--mx', `${ev.clientX - r.left}px`);
+    card.style.setProperty('--my', `${ev.clientY - r.top}px`);
+  });
+});
+
+// Tilt for cards (subtle 3D)
+const tiltEls = document.querySelectorAll('.tilt');
+tiltEls.forEach((el) => {
+  el.addEventListener('mousemove', (ev) => {
+    const r = el.getBoundingClientRect();
+    const x = (ev.clientX - r.left) / r.width - 0.5;
+    const y = (ev.clientY - r.top) / r.height - 0.5;
+    el.style.transform = `perspective(900px) rotateX(${(-y * 4).toFixed(2)}deg) rotateY(${(x * 5).toFixed(2)}deg) translateY(-4px)`;
+  });
+  el.addEventListener('mouseleave', () => {
+    el.style.transform = '';
+  });
+});
+
+// Back to top
+const toTop = document.querySelector('.to-top');
+window.addEventListener('scroll', () => {
+  toTop?.classList.toggle('show', window.scrollY > 600);
+}, { passive: true });
+
+// Floating-label trick: ensure inputs have a placeholder so :not(:placeholder-shown) works
+document.querySelectorAll('.field input, .field textarea').forEach((el) => {
+  if (!el.hasAttribute('placeholder')) el.setAttribute('placeholder', ' ');
+});
+
+// Contact form: Netlify Forms when deployed, mailto fallback for local file://
+const form = document.querySelector('.contact-form');
+const isLocalFile = window.location.protocol === 'file:';
+form?.addEventListener('submit', (ev) => {
+  const status = form.querySelector('.form-status');
+  const data = Object.fromEntries(new FormData(form).entries());
+  if (!data.name || !data.email || !data.message) {
+    ev.preventDefault();
+    status.textContent = 'Please fill name, email, and message.';
+    status.style.color = '#f472b6';
+    return;
+  }
+  if (isLocalFile) {
+    // No backend available locally — open user's mail client
+    ev.preventDefault();
+    const subject = encodeURIComponent(`New project inquiry — ${data.name}`);
+    const body = encodeURIComponent(
+      `Name: ${data.name}\nEmail: ${data.email}\nPhone: ${data.phone || '—'}\n\n${data.message}`
+    );
+    window.location.href = `mailto:lemuelduyag@gmail.com?subject=${subject}&body=${body}`;
+    status.textContent = 'Opening your email client…';
+    status.style.color = '';
+    form.reset();
+    return;
+  }
+  // Otherwise let Netlify Forms handle the POST natively
+  status.textContent = 'Sending…';
+});
+
+// Show thank-you note when Netlify redirects back with ?submitted=true
+if (new URLSearchParams(location.search).get('submitted') === 'true') {
+  const status = document.querySelector('.form-status');
+  if (status) {
+    status.textContent = '✓ Message sent — I’ll reply within one business day.';
+    status.style.color = '#22d3ee';
+  }
+}
+
+// Smooth-scroll polish for anchor clicks (respects reduced motion)
+document.querySelectorAll('a[href^="#"]').forEach((a) => {
+  a.addEventListener('click', (ev) => {
+    const id = a.getAttribute('href');
+    if (id && id.length > 1) {
+      const target = document.querySelector(id);
+      if (target) {
+        ev.preventDefault();
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+  });
+});

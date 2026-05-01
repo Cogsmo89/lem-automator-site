@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://lemautomator.work/sitemap.xml
