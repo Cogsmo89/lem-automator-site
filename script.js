@@ -111,3 +111,41 @@ document.querySelectorAll('a[href^="#"]').forEach((a) => {
     }
   });
 });
+
+// ===== Cookie consent banner =====
+(function () {
+  const KEY = 'lem-cookies-consent-v1';
+  try {
+    if (localStorage.getItem(KEY)) return;
+  } catch (e) { /* localStorage may be blocked — show banner anyway */ }
+
+  const banner = document.createElement('div');
+  banner.className = 'cookie-banner glass';
+  banner.setAttribute('role', 'dialog');
+  banner.setAttribute('aria-label', 'Cookie notice');
+  banner.innerHTML = `
+    <div class="cookie-icon" aria-hidden="true">🍪</div>
+    <div class="cookie-text">
+      <strong>We don't track you.</strong>
+      Only essential cookies (security &amp; hosting) are used.
+      <a href="cookies.html">Cookie details</a>
+    </div>
+    <div class="cookie-actions">
+      <button type="button" class="btn btn-ghost cookie-dismiss" aria-label="Dismiss">No thanks</button>
+      <button type="button" class="btn btn-primary cookie-accept" aria-label="Accept">Got it</button>
+    </div>
+    <button type="button" class="cookie-close" aria-label="Close">×</button>
+  `;
+  document.body.appendChild(banner);
+  // Trigger entrance animation
+  requestAnimationFrame(() => banner.classList.add('show'));
+
+  function dismiss(value) {
+    try { localStorage.setItem(KEY, value); } catch (e) {}
+    banner.classList.remove('show');
+    setTimeout(() => banner.remove(), 400);
+  }
+  banner.querySelector('.cookie-accept').addEventListener('click', () => dismiss('accepted'));
+  banner.querySelector('.cookie-dismiss').addEventListener('click', () => dismiss('dismissed'));
+  banner.querySelector('.cookie-close').addEventListener('click', () => dismiss('dismissed'));
+})();
