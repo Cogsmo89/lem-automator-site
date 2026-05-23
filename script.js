@@ -1,16 +1,29 @@
 // Year
 document.getElementById('year').textContent = new Date().getFullYear();
 
-// Reveal on scroll
+// Reveal on scroll — with a gentle stagger for items sharing a parent
 const io = new IntersectionObserver((entries) => {
   entries.forEach((e) => {
     if (e.isIntersecting) {
+      const delay = Number(e.target.dataset.delay || 0);
+      e.target.style.transitionDelay = `${delay}ms`;
       e.target.classList.add('in');
       io.unobserve(e.target);
     }
   });
 }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
-document.querySelectorAll('[data-reveal]').forEach((el) => io.observe(el));
+
+// Assign stagger delays to siblings within each grid/group, then observe.
+const STAGGER = 70; // ms between siblings
+const MAX_STAGGER = 6; // cap so long lists don't lag
+document.querySelectorAll('[data-reveal]').forEach((el) => {
+  const siblings = Array.from(el.parentElement.children).filter((c) => c.hasAttribute('data-reveal'));
+  if (siblings.length > 1) {
+    const idx = Math.min(siblings.indexOf(el), MAX_STAGGER);
+    el.dataset.delay = String(idx * STAGGER);
+  }
+  io.observe(el);
+});
 
 // Mobile menu
 const menuBtn = document.querySelector('.menu-btn');
@@ -48,6 +61,22 @@ tiltEls.forEach((el) => {
     el.style.transform = '';
   });
 });
+
+// Magnetic primary CTAs — subtle pull toward the cursor (pointer devices only)
+const fine = window.matchMedia('(pointer: fine)').matches;
+const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+if (fine && !reduceMotion) {
+  document.querySelectorAll('[data-magnetic]').forEach((el) => {
+    const strength = 0.28;
+    el.addEventListener('mousemove', (ev) => {
+      const r = el.getBoundingClientRect();
+      const mx = ev.clientX - (r.left + r.width / 2);
+      const my = ev.clientY - (r.top + r.height / 2);
+      el.style.transform = `translate(${(mx * strength).toFixed(1)}px, ${(my * strength).toFixed(1)}px)`;
+    });
+    el.addEventListener('mouseleave', () => { el.style.transform = ''; });
+  });
+}
 
 // Back to top
 const toTop = document.querySelector('.to-top');
