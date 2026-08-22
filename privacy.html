@@ -115,9 +115,9 @@
     <h2>2. What information we collect</h2>
     <p>We only collect what you choose to send us:</p>
     <ul>
-      <li><strong>Contact form data</strong> — your name, email, phone number (optional), and the message you write. Submitted via Netlify Forms.</li>
+      <li><strong>Contact form data</strong> — your name, email, phone number (optional), and the message you write. The form posts to a serverless function on Vercel, which relays it to our inbox by email through Resend. It is not stored in a database.</li>
       <li><strong>Booking data</strong> — when you book a meeting through Google Calendar, Google collects your name, email, and the time slot you pick. We receive that data to confirm the meeting.</li>
-      <li><strong>Technical data</strong> — basic, anonymous request information (IP address, browser type, pages visited) is automatically logged by our hosting provider (Netlify) and DNS provider (Cloudflare) for security and performance monitoring.</li>
+      <li><strong>Technical data</strong> — basic, anonymous request information (IP address, browser type, pages visited) is automatically logged by our hosting provider (Vercel) and DNS provider (Cloudflare) for security and performance monitoring.</li>
     </ul>
     <p>We do <strong>not</strong> use third‑party advertising trackers, sell your data, or build behavioural profiles.</p>
 
@@ -132,7 +132,8 @@
     <h2>4. Third‑party services we use</h2>
     <p>This site relies on a small number of trusted providers. Each has its own privacy policy:</p>
     <ul>
-      <li><strong>Netlify</strong> — hosting and form submission storage. <a href="https://www.netlify.com/privacy/" target="_blank" rel="noopener">Netlify Privacy Policy</a>.</li>
+      <li><strong>Vercel</strong> — website hosting and the contact-form function. <a href="https://vercel.com/legal/privacy-policy" target="_blank" rel="noopener">Vercel Privacy Policy</a>.</li>
+      <li><strong>Resend</strong> — delivers contact-form submissions to our inbox by email. <a href="https://resend.com/legal/privacy-policy" target="_blank" rel="noopener">Resend Privacy Policy</a>.</li>
       <li><strong>Cloudflare</strong> — DNS and edge security. <a href="https://www.cloudflare.com/privacypolicy/" target="_blank" rel="noopener">Cloudflare Privacy Policy</a>.</li>
       <li><strong>Google (Calendar &amp; Meet)</strong> — booking and video calls. <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Google Privacy Policy</a>.</li>
       <li><strong>Google Fonts</strong> — webfont delivery (no cookies, no user identifiers stored).</li>

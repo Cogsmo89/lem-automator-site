@@ -2,7 +2,7 @@
 
 Personal site for **Lemuel Duyag** — automation expert specializing in n8n, Make.com, Zapier, and GoHighLevel.
 
-🌐 **Live:** [lemautomator.work](https://lemautomator.work) · [zingy-alfajores-e935d2.netlify.app](https://zingy-alfajores-e935d2.netlify.app/)
+🌐 **Live:** [lemautomator.work](https://lemautomator.work)
 
 ## Stack
 
