@@ -19,3 +19,10 @@ dist/
 
 # Local-only large source files (Photoshop, etc.)
 *.psd
+
+# Vercel
+.vercel/
+
+# Local env
+.env
+.env*.local

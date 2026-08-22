@@ -89,24 +89,35 @@ document.querySelectorAll('.field input, .field textarea').forEach((el) => {
   if (!el.hasAttribute('placeholder')) el.setAttribute('placeholder', ' ');
 });
 
-// Contact form: Netlify Forms when deployed, mailto fallback for local file://
+// Contact form: posts to the /api/contact serverless function.
+// Falls back to the user's mail client when opened straight off disk (file://).
 const form = document.querySelector('.contact-form');
 const isLocalFile = window.location.protocol === 'file:';
-form?.addEventListener('submit', (ev) => {
+
+form?.addEventListener('submit', async (ev) => {
+  ev.preventDefault();
   const status = form.querySelector('.form-status');
+  const button = form.querySelector('button[type="submit"]');
   const data = Object.fromEntries(new FormData(form).entries());
-  if (!data.name || !data.email || !data.message) {
-    ev.preventDefault();
-    status.textContent = 'Please fill name, email, and message.';
+
+  const fail = (msg) => {
+    status.textContent = msg;
     status.style.color = '#f472b6';
-    return;
+  };
+
+  if (!data.name || !data.email || !data.message) {
+    return fail('Please fill name, email, and message.');
   }
+
   if (isLocalFile) {
-    // No backend available locally — open user's mail client
-    ev.preventDefault();
+    // No backend available locally — open the user's mail client
     const subject = encodeURIComponent(`New project inquiry — ${data.name}`);
     const body = encodeURIComponent(
-      `Name: ${data.name}\nEmail: ${data.email}\nPhone: ${data.phone || '—'}\n\n${data.message}`
+      `Name: ${data.name}
+Email: ${data.email}
+Phone: ${data.phone || '—'}
+
+${data.message}`
     );
     window.location.href = `mailto:lemuelduyag@gmail.com?subject=${subject}&body=${body}`;
     status.textContent = 'Opening your email client…';
@@ -114,18 +125,33 @@ form?.addEventListener('submit', (ev) => {
     form.reset();
     return;
   }
-  // Otherwise let Netlify Forms handle the POST natively
-  status.textContent = 'Sending…';
-});
 
-// Show thank-you note when Netlify redirects back with ?submitted=true
-if (new URLSearchParams(location.search).get('submitted') === 'true') {
-  const status = document.querySelector('.form-status');
-  if (status) {
+  status.textContent = 'Sending…';
+  status.style.color = '';
+  if (button) button.disabled = true;
+
+  try {
+    const res = await fetch(form.action, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    const payload = await res.json().catch(() => ({}));
+
+    if (!res.ok) {
+      fail(payload.error || 'Something went wrong. Please try again.');
+      return;
+    }
+
     status.textContent = '✓ Message sent — I’ll reply within one business day.';
     status.style.color = '#22d3ee';
+    form.reset();
+  } catch (err) {
+    fail('Network error. Please try again, or email me directly.');
+  } finally {
+    if (button) button.disabled = false;
   }
-}
+});
 
 // Smooth-scroll polish for anchor clicks (respects reduced motion)
 document.querySelectorAll('a[href^="#"]').forEach((a) => {

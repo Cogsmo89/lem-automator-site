@@ -565,10 +565,8 @@
     </div>
 
     <form class="contact-form glass" data-reveal novalidate
-          name="contact" method="POST" data-netlify="true" netlify-honeypot="bot-field"
-          action="/?submitted=true">
-      <input type="hidden" name="form-name" value="contact" />
-      <p style="position:absolute;left:-9999px" aria-hidden="true"><label>Don't fill this: <input name="bot-field" /></label></p>
+          name="contact" method="POST" action="/api/contact">
+      <p style="position:absolute;left:-9999px" aria-hidden="true"><label>Don't fill this: <input name="bot-field" tabindex="-1" autocomplete="off" /></label></p>
       <div class="field">
         <input id="name" name="name" type="text" required autocomplete="name" />
         <label for="name">Name</label>
