@@ -167,6 +167,121 @@ document.querySelectorAll('a[href^="#"]').forEach((a) => {
   });
 });
 
+// ===== Community carousel =====
+// Slides live in the markup. If none are present the whole section stays hidden,
+// so the page never shows an empty frame while photos are still being added.
+(function () {
+  const gallery = document.querySelector('.gallery');
+  if (!gallery) return;
+
+  const section = gallery.closest('section');
+  const track = gallery.querySelector('.gallery-track');
+  const slides = Array.from(gallery.querySelectorAll('.gallery-slide'));
+
+  if (!slides.length) {
+    if (section) section.hidden = true;
+    return;
+  }
+
+  const dotsWrap = gallery.querySelector('.gallery-dots');
+  const counter = gallery.querySelector('.gallery-count');
+  const prev = gallery.querySelector('.gallery-prev');
+  const next = gallery.querySelector('.gallery-next');
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  let index = 0;
+  let timer = null;
+
+  // A single slide needs no controls.
+  if (slides.length < 2) {
+    [prev, next, dotsWrap, counter].forEach((el) => el && el.remove());
+    return;
+  }
+
+  slides.forEach((slide, i) => {
+    const dot = document.createElement('button');
+    dot.type = 'button';
+    dot.setAttribute('aria-label', `Go to photo ${i + 1} of ${slides.length}`);
+    dot.addEventListener('click', () => { go(i); restart(); });
+    dotsWrap.appendChild(dot);
+  });
+
+  const dots = Array.from(dotsWrap.children);
+
+  // A slide shifted out of frame by translateX never intersects the viewport, so
+  // native lazy-loading would leave it blank forever. Promote the current slide
+  // and its neighbours to eager as soon as they're needed.
+  function preload(i) {
+    [i - 1, i, i + 1].forEach((n) => {
+      const slide = slides[(n + slides.length) % slides.length];
+      slide.querySelectorAll('img[loading="lazy"]').forEach((img) => {
+        img.loading = 'eager';
+      });
+    });
+  }
+
+  function go(next_i) {
+    index = (next_i + slides.length) % slides.length;
+    preload(index);
+    track.style.transform = `translateX(-${index * 100}%)`;
+    slides.forEach((s, i) => {
+      s.setAttribute('aria-hidden', String(i !== index));
+      // Keep off-screen slides out of the tab order.
+      s.querySelectorAll('a, button').forEach((el) => {
+        el.tabIndex = i === index ? 0 : -1;
+      });
+    });
+    dots.forEach((d, i) => d.setAttribute('aria-current', String(i === index)));
+    if (counter) counter.textContent = `${index + 1} / ${slides.length}`;
+  }
+
+  function restart() {
+    if (reduced) return;
+    clearInterval(timer);
+    timer = setInterval(() => go(index + 1), 6000);
+  }
+
+  prev.addEventListener('click', () => { go(index - 1); restart(); });
+  next.addEventListener('click', () => { go(index + 1); restart(); });
+
+  // Keyboard, only when the carousel has focus within it.
+  gallery.addEventListener('keydown', (ev) => {
+    if (ev.key === 'ArrowLeft') { ev.preventDefault(); go(index - 1); restart(); }
+    if (ev.key === 'ArrowRight') { ev.preventDefault(); go(index + 1); restart(); }
+  });
+
+  // Pause while the visitor is looking at or interacting with it.
+  ['mouseenter', 'focusin'].forEach((e) => gallery.addEventListener(e, () => clearInterval(timer)));
+  ['mouseleave', 'focusout'].forEach((e) => gallery.addEventListener(e, restart));
+
+  // Don't animate in a background tab.
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) clearInterval(timer); else restart();
+  });
+
+  // Touch swipe.
+  let startX = 0, startY = 0, tracking = false;
+  const viewport = gallery.querySelector('.gallery-viewport');
+  viewport.addEventListener('touchstart', (ev) => {
+    startX = ev.touches[0].clientX;
+    startY = ev.touches[0].clientY;
+    tracking = true;
+    clearInterval(timer);
+  }, { passive: true });
+  viewport.addEventListener('touchend', (ev) => {
+    if (!tracking) return;
+    tracking = false;
+    const dx = ev.changedTouches[0].clientX - startX;
+    const dy = ev.changedTouches[0].clientY - startY;
+    // Ignore mostly-vertical drags so page scrolling still works.
+    if (Math.abs(dx) > 45 && Math.abs(dx) > Math.abs(dy)) go(index + (dx < 0 ? 1 : -1));
+    restart();
+  }, { passive: true });
+
+  go(0);
+  restart();
+})();
+
 // ===== Cookie consent banner =====
 (function () {
   const KEY = 'lem-cookies-consent-v1';
