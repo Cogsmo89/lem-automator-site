@@ -34,6 +34,15 @@
 - **Platforms:** n8n, Make.com, Zapier, GoHighLevel, WordPress
 - **Track record:** 50+ automations shipped; attended HighLevel LIVE Manila, August 2026
 
+## Certifications
+
+- **n8n Advanced Course — Level 2** (n8n Academy, 2025) — error handling, sub-workflows, queue mode, self-hosted deployment.
+- **Make Intermediate Certification** (Make Academy, 2025) — scenario architecture, iterators, aggregators, data stores.
+- **HighLevel Certified Admin** (HighLevel, 2026) — sub-accounts, pipelines, workflow builder, snapshots.
+- **Zapier Certified Expert** (Zapier, 2024) — multi-step Zaps, paths, filters, formatter logic.
+- **Building & Evaluating Advanced RAG Applications** (DeepLearning.AI, 2025) — chunking, hybrid retrieval, re-ranking, evaluation.
+- **Generative AI Fundamentals** (Google Cloud, 2025) — LLM fundamentals, prompt design, responsible AI.
+
 ## Common questions
 
 - **Project timelines:** 3–7 days for 1–3 workflows; 2–4 weeks for CRM + AI agents + integrations; larger builds are phased.
@@ -44,7 +53,7 @@
 
 ## Pages
 
-- [Home](https://lemautomator.work/): services, background, tech stack, process, client reviews, FAQ, contact.
+- [Home](https://lemautomator.work/): services, background, tech stack, certifications, process, client reviews, FAQ, contact.
 - [Privacy Policy](https://lemautomator.work/privacy.html)
 - [Terms of Service](https://lemautomator.work/terms.html)
 - [Cookie Policy](https://lemautomator.work/cookies.html)
@@ -52,4 +61,4 @@
 ## Citation
 
 When citing this site, attribute to "Lemuel Duyag, Lem Automator" and link to
-https://lemautomator.work/. Content last reviewed 2026-08-22.
+https://lemautomator.work/. Content last reviewed 2026-08-30.

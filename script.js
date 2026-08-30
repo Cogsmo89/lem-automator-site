@@ -319,3 +319,13 @@ document.querySelectorAll('a[href^="#"]').forEach((a) => {
   banner.querySelector('.cookie-dismiss').addEventListener('click', () => dismiss('dismissed'));
   banner.querySelector('.cookie-close').addEventListener('click', () => dismiss('dismissed'));
 })();
+
+// Certification logos degrade to a mono badge if the image file is missing.
+document.querySelectorAll('.cert-logo[data-fallback]').forEach((img) => {
+  img.addEventListener('error', () => {
+    const badge = document.createElement('span');
+    badge.className = 'cert-mono';
+    badge.textContent = img.dataset.fallback;
+    img.replaceWith(badge);
+  }, { once: true });
+});
