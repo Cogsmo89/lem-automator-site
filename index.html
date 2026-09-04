@@ -42,7 +42,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;600;700;800;900&family=Hanken+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="styles.css?v=20260830" />
+<link rel="stylesheet" href="styles.css?v=20260904" />
 
 <script type="application/ld+json">
 {
@@ -452,23 +452,51 @@
 
 <main id="top">
 
-<section class="hero">
+<!-- Full-width stage so the backdrop can bleed edge to edge without 100vw, which
+     overshoots by the scrollbar's width and leaves a sliver of horizontal scroll. -->
+<div class="hero-stage">
+
+  <!-- Cinematic backdrop. The clip is blended in luminosity over the brand gradient,
+       so it reads as moving terrain in violet/cyan rather than as its own footage. -->
+  <div class="hero-cinema" aria-hidden="true">
+    <div class="hero-cinema-tint"></div>
+    <video class="hero-cinema-video"
+           data-cinema
+           data-src="videos/hero.mp4"
+           width="1600" height="890"
+           muted playsinline disablepictureinpicture preload="none"></video>
+    <div class="hero-cinema-mask"></div>
+  </div>
+
+  <!-- WCAG 2.2.2: looping motion that starts on its own needs a stop control.
+       Stays hidden until script.js decides the clip is actually playing. -->
+  <button type="button" class="cinema-toggle" data-cinema-toggle hidden
+          aria-pressed="false" aria-label="Pause background video">
+    <svg class="ct-pause" viewBox="0 0 24 24" width="13" height="13" aria-hidden="true">
+      <path d="M9 5v14M15 5v14" stroke="currentColor" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+    </svg>
+    <svg class="ct-play" viewBox="0 0 24 24" width="13" height="13" aria-hidden="true">
+      <path d="M8 5.5v13l11-6.5-11-6.5Z" fill="currentColor"/>
+    </svg>
+  </button>
+
+  <section class="hero">
   <div class="hero-grid">
     <div class="hero-copy">
-      <div class="badge glass" data-reveal>
+      <div class="badge glass fade-rise">
         <span class="dot"></span> Available for new automation projects
       </div>
-      <h1 id="hero-title" data-reveal>
+      <h1 id="hero-title" class="fade-rise">
         <span class="grad">Automate everything.</span><br />
         Scale without the chaos.
       </h1>
-      <p class="lede" data-reveal>
+      <p class="lede fade-rise fade-rise-1">
         I'm <strong>Lemuel Duyag</strong> — an <em>AI Strategist &amp; Implementation Specialist</em>
         building custom automation in <em>n8n</em>, <em>Make.com</em>, <em>Zapier</em> and
         <em>GoHighLevel</em>. AI chatbots, voice agents, and RAG systems that talk to your real data.
         <strong>50+ projects shipped.</strong>
       </p>
-      <div class="cta-row" data-reveal>
+      <div class="cta-row fade-rise fade-rise-2">
         <a href="#book" class="btn btn-primary" data-magnetic>
           <span>Book a meeting</span>
           <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -479,14 +507,14 @@
         </a>
       </div>
 
-      <div class="hero-stats" data-reveal>
+      <div class="hero-stats fade-rise fade-rise-3">
         <div class="stat glass"><b>50+</b><span>automations shipped</span></div>
         <div class="stat glass"><b>4×</b><span>platforms mastered</span></div>
         <div class="stat glass"><b>24/7</b><span>AI agents running</span></div>
       </div>
     </div>
 
-    <div class="hero-portrait" data-reveal>
+    <div class="hero-portrait fade-rise fade-rise-1">
       <div class="portrait-glow"></div>
       <div class="portrait-ring"></div>
       <div class="portrait-frame">
@@ -549,7 +577,8 @@
       <span>RAG</span><i></i>
     </div>
   </div>
-</section>
+  </section>
+</div>
 
 <section id="services" class="section">
   <div class="section-head" data-reveal>
@@ -1210,6 +1239,6 @@
 </a>
 <a href="#top" class="to-top glass" aria-label="Back to top">↑</a>
 
-<script src="script.js?v=20260830" defer></script>
+<script src="script.js?v=20260904" defer></script>
 </body>
 </html>

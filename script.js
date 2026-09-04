@@ -329,3 +329,122 @@ document.querySelectorAll('.cert-logo[data-fallback]').forEach((img) => {
     img.replaceWith(badge);
   }, { once: true });
 });
+
+// Cinematic hero backdrop.
+// The clip is short and does not loop seamlessly on its own, so we drive the
+// loop by hand: fade in over the first 0.5s, fade out over the last 0.5s, then
+// hold at zero for a beat before rewinding. The seam lands while it is invisible.
+(function () {
+  const video = document.querySelector('[data-cinema]');
+  if (!video) return;
+
+  const FADE = 0.5;          // seconds of fade at each end
+  const RESET_HOLD = 100;    // ms held at zero before rewinding
+
+  // Skip the clip entirely where it would cost more than it gives. Reduced
+  // motion and metered connections are settled once; width is not, because a
+  // window can be resized or a tablet rotated mid-visit.
+  const conn = navigator.connection;
+  const thrifty = conn && (conn.saveData === true || /2g/.test(conn.effectiveType || ''));
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches || thrifty) return;
+
+  const wide = window.matchMedia('(min-width: 901px)');
+  const toggle = document.querySelector('[data-cinema-toggle]');
+
+  let raf = 0;
+  let visible = true;    // is the hero on screen
+  let wanted = true;     // whether we *intend* it to be running right now
+  let userPaused = false; // an explicit choice, which outranks everything below
+  let loaded = false;
+
+  const tick = () => {
+    const t = video.currentTime;
+    const d = video.duration;
+    if (d && Number.isFinite(d)) {
+      const rising = Math.min(t / FADE, 1);
+      const falling = Math.min((d - t) / FADE, 1);
+      video.style.opacity = String(Math.max(0, Math.min(rising, falling)));
+    }
+    raf = requestAnimationFrame(tick);
+  };
+
+  const startLoop = () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(tick); };
+  const stopLoop = () => { cancelAnimationFrame(raf); raf = 0; };
+  const play = () => video.play().catch(() => {});
+  const playable = () => loaded && !userPaused && visible && !document.hidden && wide.matches;
+
+  const pause = () => { wanted = false; video.pause(); stopLoop(); };
+  const resume = () => {
+    if (!playable()) return;
+    wanted = true;
+    play();
+    startLoop();
+  };
+
+  video.addEventListener('playing', startLoop);
+
+  video.addEventListener('ended', () => {
+    video.style.opacity = '0';
+    setTimeout(() => {
+      video.currentTime = 0;
+      if (playable()) play();
+    }, RESET_HOLD);
+  });
+
+  // Chrome suspends muted, video-only media when the window drops out of focus
+  // and does not restart it on its own. An immediate play() gets rejected too,
+  // so give it a beat before asking again.
+  video.addEventListener('pause', () => {
+    if (!wanted || video.ended || !playable()) return;
+    setTimeout(() => { if (wanted && video.paused && !video.ended && playable()) play(); }, 200);
+  });
+
+  // Don't burn frames on a hero nobody is looking at.
+  new IntersectionObserver(
+    ([entry]) => { visible = entry.isIntersecting; visible ? resume() : pause(); },
+    { threshold: 0.01 }
+  ).observe(video);
+
+  document.addEventListener('visibilitychange', () => (document.hidden ? pause() : resume()));
+  // Refocusing a window fires no visibilitychange, so recover here too.
+  window.addEventListener('focus', resume);
+  window.addEventListener('pageshow', resume);
+
+  // Fetch only once everything above the fold has settled. The markup ships
+  // preload="none" so the clip never competes with LCP; it is promoted to
+  // "auto" here, at the point we actually want the bytes.
+  const load = () => {
+    if (loaded || !wide.matches) return;
+    loaded = true;
+    video.preload = 'auto';
+    video.src = video.dataset.src;
+    video.load();
+    if (toggle) toggle.hidden = false;   // only offer the control once there is something to control
+    resume();                            // respects scroll position and tab state
+  };
+
+  // Crossing the width threshold either way is handled live, so a resized
+  // window neither keeps decoding a clip it should have dropped nor stays
+  // stuck without one it now qualifies for.
+  wide.addEventListener('change', () => {
+    if (wide.matches) { loaded ? resume() : load(); }
+    else { pause(); if (toggle) toggle.hidden = true; }
+  });
+
+  // WCAG 2.2.2 — motion that starts on its own and loops needs a way to stop it.
+  if (toggle) {
+    const sync = () => {
+      toggle.setAttribute('aria-pressed', String(userPaused));
+      toggle.setAttribute('aria-label', userPaused ? 'Play background video' : 'Pause background video');
+    };
+    toggle.addEventListener('click', () => {
+      userPaused = !userPaused;
+      if (userPaused) pause(); else resume();
+      sync();
+    });
+    sync();
+  }
+
+  if (document.readyState === 'complete') load();
+  else window.addEventListener('load', load, { once: true });
+})();

@@ -217,7 +217,102 @@ p  { color: var(--ink-2); margin: 0; }
 .eyebrow::before { content: "// "; color: var(--citron); }
 
 /* ===== Hero ===== */
-.hero { padding: 56px 24px 36px; max-width: 1200px; margin: 0 auto; }
+.hero { padding: 56px 24px 36px; max-width: 1200px; margin: 0 auto; position: relative; }
+
+/* --- Cinematic backdrop ---
+   Full-bleed layer anchored below the nav. The clip sits in `luminosity` blend
+   over the brand gradient, so only its light and shadow survive — the colour is
+   ours. Opacity is driven from script.js, which fades the seams of each loop. */
+.hero-stage { position: relative; }
+.hero-cinema {
+  position: absolute;
+  top: 130px; bottom: 0;
+  left: 0; right: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  isolation: isolate;
+  /* An alpha mask, not a painted-on scrim — the edges have to go transparent so
+     the page's own grid and auras keep showing through, otherwise the top of the
+     layer cuts a visible line across the background. */
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 18%, #000 66%, transparent 100%);
+  mask-image: linear-gradient(to bottom, transparent 0%, #000 18%, #000 66%, transparent 100%);
+}
+.hero-cinema-tint {
+  position: absolute; inset: 0;
+  background: linear-gradient(116deg, #6c5cff 0%, #4740c4 30%, #1d7f96 64%, #34e4ea 100%);
+  opacity: 0.9;
+}
+.hero-cinema-video {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  object-fit: cover;
+  opacity: 0;                 /* script.js owns this */
+  mix-blend-mode: luminosity;
+  /* Blurred hard enough that the source landscape stops reading as a landscape
+     and becomes drifting light and shadow. The slight scale hides the soft
+     edges blur leaves behind. */
+  filter: blur(14px) contrast(1.24) brightness(0.6) saturate(0.8);
+  transform: scale(1.08);
+  will-change: opacity;
+}
+/* Dimming scrim only — every stop is translucent so it darkens without hiding. */
+.hero-cinema-mask {
+  position: absolute; inset: 0;
+  background:
+    linear-gradient(to bottom,
+      rgba(6, 7, 16, 0.50) 0%,
+      rgba(6, 7, 16, 0.58) 48%,
+      rgba(6, 7, 16, 0.78) 100%),
+    radial-gradient(115% 78% at 50% 38%, transparent 22%, rgba(6, 7, 16, 0.5) 100%);
+}
+/* Copy and portrait ride above the backdrop. */
+.hero-grid, .hero .marquee { position: relative; z-index: 1; }
+
+/* Stop control. Deliberately quiet, but not faded — a control nobody can see is
+   not a mechanism, and the icon still has to clear 3:1 against its own backing,
+   so the tint is carried by colour rather than by opacity. */
+.cinema-toggle {
+  /* Left side on purpose: the fixed .fab-call and .to-top buttons own the
+     bottom-right corner and sit at a far higher z-index, so a control placed
+     there gets covered as the page scrolls past. */
+  position: absolute; left: 24px; bottom: 18px; z-index: 2;
+  width: 32px; height: 32px; border-radius: 50%;
+  display: grid; place-items: center;
+  color: var(--muted);
+  background: rgba(10, 12, 23, 0.72);
+  border: 1px solid var(--line-2);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  cursor: pointer;
+  transition: color .3s var(--ease), border-color .3s var(--ease), background .3s var(--ease);
+}
+.cinema-toggle:hover { color: var(--ink); background: rgba(10, 12, 23, 0.9); }
+.cinema-toggle:focus-visible {
+  color: var(--ink);
+  outline: 2px solid var(--cyan); outline-offset: 3px;
+}
+.cinema-toggle .ct-play { display: none; }
+.cinema-toggle[aria-pressed="true"] .ct-play { display: block; }
+.cinema-toggle[aria-pressed="true"] .ct-pause { display: none; }
+@media (max-width: 900px) { .cinema-toggle { display: none; } }
+
+/* --- Cinematic entrance ---
+   Runs on load rather than on scroll: the hero is above the fold, so the
+   staggered cascade is the first thing seen. */
+@keyframes fadeRise {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.fade-rise {
+  opacity: 0;
+  animation: fadeRise 0.8s ease-out forwards;
+}
+/* The headline carries no delay on purpose: it is the LCP element, and an
+   opacity:0 element is not eligible for LCP until it starts painting. */
+.fade-rise-1 { animation-delay: 0.2s; }
+.fade-rise-2 { animation-delay: 0.4s; }
+.fade-rise-3 { animation-delay: 0.6s; }
 .hero-grid {
   display: grid; grid-template-columns: 1.08fr 1fr; gap: 56px; align-items: center;
 }
@@ -969,5 +1064,21 @@ p  { color: var(--ink-2); margin: 0; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
   [data-reveal] { opacity: 1 !important; transform: none !important; }
+  .fade-rise { opacity: 1 !important; transform: none !important; }
   .gallery-track { transition: none !important; }
+}
+
+/* Narrow screens never download the clip (script.js gates it), so the tint and
+   mask carry the hero on their own — cheaper and calmer at phone size. */
+@media (max-width: 900px) {
+  .hero-cinema { top: 90px; }
+  .hero-cinema-tint { opacity: 0.5; }
+  .hero-cinema-mask {
+    background:
+      linear-gradient(to bottom,
+        rgba(6, 7, 16, 0.6) 0%,
+        rgba(6, 7, 16, 0.68) 50%,
+        rgba(6, 7, 16, 0.82) 100%),
+      radial-gradient(120% 70% at 50% 34%, transparent 20%, rgba(6, 7, 16, 0.55) 100%);
+  }
 }
