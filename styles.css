@@ -656,6 +656,10 @@ p  { color: var(--ink-2); margin: 0; }
 
 /* Floating-label form */
 .contact-form { padding: 32px; border-radius: var(--radius-lg); display: grid; gap: 16px; align-self: start; width: 100%; }
+/* Turnstile injects a fixed-size iframe; keep it from overflowing the column
+   on narrow screens. The slot stays [hidden] unless a site key is configured. */
+.turnstile-slot { min-height: 0; max-width: 100%; overflow: hidden; }
+.turnstile-slot iframe { max-width: 100% !important; }
 .field { position: relative; }
 .field input, .field textarea {
   width: 100%; padding: 18px 16px 14px; border-radius: 13px;

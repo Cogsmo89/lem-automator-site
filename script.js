@@ -94,6 +94,60 @@ document.querySelectorAll('.field input, .field textarea').forEach((el) => {
 const form = document.querySelector('.contact-form');
 const isLocalFile = window.location.protocol === 'file:';
 
+// Abuse guard. The endpoint requires a short-lived, IP-bound token, and a
+// Turnstile response whenever Cloudflare keys are configured server-side.
+// Nothing here is fetched until the visitor actually engages with the form, so
+// the vast majority of page views cost nothing extra.
+let guardPromise = null;
+let turnstileWidget = null;
+
+function loadScript(src) {
+  return new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = src; s.async = true; s.defer = true;
+    s.onload = resolve; s.onerror = () => reject(new Error('script failed'));
+    document.head.appendChild(s);
+  });
+}
+
+function mountTurnstile(sitekey) {
+  const slot = form?.querySelector('[data-turnstile]');
+  if (!slot || turnstileWidget !== null) return;
+  slot.hidden = false;
+  turnstileWidget = window.turnstile.render(slot, { sitekey, theme: 'dark', size: 'flexible' });
+}
+
+// Resolves to { token, sitekey }. Re-issued on demand so a form left open past
+// the token's lifetime can recover instead of failing the visitor.
+function initGuard({ force = false } = {}) {
+  if (force) guardPromise = null;
+  if (guardPromise) return guardPromise;
+
+  guardPromise = fetch('/api/form-token', { credentials: 'same-origin' })
+    .then((r) => (r.ok ? r.json() : Promise.reject(new Error('token request failed'))))
+    .then(async (data) => {
+      if (data.sitekey) {
+        try {
+          if (!window.turnstile) {
+            await loadScript('https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit');
+          }
+          mountTurnstile(data.sitekey);
+        } catch (err) {
+          // Widget unavailable; the server decides whether that is fatal.
+          console.warn('[contact] Turnstile unavailable', err);
+        }
+      }
+      return data;
+    })
+    .catch((err) => { guardPromise = null; throw err; });
+
+  return guardPromise;
+}
+
+// Warm the token as soon as the visitor touches the form. Filling it in then
+// comfortably outlasts the server's minimum-age check.
+form?.addEventListener('focusin', () => { initGuard().catch(() => {}); }, { once: true });
+
 form?.addEventListener('submit', async (ev) => {
   ev.preventDefault();
   const status = form.querySelector('.form-status');
@@ -131,14 +185,45 @@ ${data.message}`
   if (button) button.disabled = true;
 
   try {
-    const res = await fetch(form.action, {
+    let guard;
+    try {
+      guard = await initGuard();
+    } catch (err) {
+      fail('Could not verify your browser. Please reload the page and try again.');
+      return;
+    }
+
+    data.formToken = guard.token;
+    if (guard.sitekey && window.turnstile && turnstileWidget !== null) {
+      data.turnstileToken = window.turnstile.getResponse(turnstileWidget) || '';
+    }
+
+    const send = () => fetch(form.action, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
-    const payload = await res.json().catch(() => ({}));
+
+    let res = await send();
+    let payload = await res.json().catch(() => ({}));
+
+    // A token that aged out while the form sat open is recoverable: mint a
+    // fresh one and retry once rather than making the visitor start over.
+    if (res.status === 400 && /expired/i.test(payload.error || '')) {
+      const fresh = await initGuard({ force: true }).catch(() => null);
+      if (fresh) {
+        data.formToken = fresh.token;
+        if (window.turnstile && turnstileWidget !== null) {
+          window.turnstile.reset(turnstileWidget);
+          data.turnstileToken = window.turnstile.getResponse(turnstileWidget) || '';
+        }
+        res = await send();
+        payload = await res.json().catch(() => ({}));
+      }
+    }
 
     if (!res.ok) {
+      if (window.turnstile && turnstileWidget !== null) window.turnstile.reset(turnstileWidget);
       fail(payload.error || 'Something went wrong. Please try again.');
       return;
     }
@@ -146,6 +231,10 @@ ${data.message}`
     status.textContent = '✓ Message sent — I’ll reply within one business day.';
     status.style.color = '#22d3ee';
     form.reset();
+    // form.reset() does not clear the widget, and a Turnstile response is
+    // single-use — without this a second message in one visit is rejected.
+    if (window.turnstile && turnstileWidget !== null) window.turnstile.reset(turnstileWidget);
+    initGuard({ force: true }).catch(() => {});
   } catch (err) {
     fail('Network error. Please try again, or email me directly.');
   } finally {
