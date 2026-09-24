@@ -1,0 +1,17 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "side-tab",
+        "value": "*",
+        "files": [
+          "api/contact.js"
+        ],
+        "createdAt": "2026-09-24T04:56:55.498Z",
+        "reason": "Claude: api/contact.js renders no site UI - the border-left is a callout inside transactional email HTML sent via Resend, where left-border callouts are idiomatic and mail clients support little other styling."
+      }
+    ]
+  }
+}
