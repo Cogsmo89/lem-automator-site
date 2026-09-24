@@ -40,11 +40,25 @@ function originAllowed(req) {
 const sign = (payload) =>
   crypto.createHmac('sha256', secret()).update(payload).digest('base64url');
 
-// The address is hashed, never stored raw: the token binds to the requester
-// without carrying a personal identifier around. "|" is the delimiter because
-// IPv4 contains dots and IPv6 contains colons.
+// Bind to the network, not the exact address. IPv6 privacy extensions rotate
+// the host part of an address per connection, and mobile carriers reassign
+// addresses mid-session — binding to the full address would silently reject
+// genuine visitors who took a few minutes to write their message. A /64 for
+// IPv6 and a /24 for IPv4 survive that while still defeating replay from a
+// different network.
+function ipPrefix(ip) {
+  if (!ip || ip === 'unknown') return 'unknown';
+  if (ip.includes(':')) {
+    const head = ip.split('::')[0].split(':').filter(Boolean);
+    return `v6:${head.slice(0, 4).join(':')}`;
+  }
+  return `v4:${ip.split('.').slice(0, 3).join('.')}`;
+}
+
+// The network is hashed, never stored raw, so the token carries no personal
+// identifier. "|" is the delimiter because IPv4 contains dots and IPv6 colons.
 const ipTag = (req) =>
-  crypto.createHmac('sha256', secret()).update(`ip:${clientIp(req)}`).digest('base64url').slice(0, 22);
+  crypto.createHmac('sha256', secret()).update(`ip:${ipPrefix(clientIp(req))}`).digest('base64url').slice(0, 22);
 
 // Tokens are bound to the requester, so one harvested token cannot be replayed
 // from a bot farm.
