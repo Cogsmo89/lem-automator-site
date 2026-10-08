@@ -601,9 +601,13 @@ p  { color: var(--ink-2); margin: 0; }
   margin-top: 16px;
   font-family: var(--font-mono); font-size: 12px;
   color: var(--ink-2);
-  transition: color .3s var(--ease), gap .3s var(--ease);
+  transition: color .3s var(--ease);
 }
-.site:hover .site-link { color: var(--citron); gap: 10px; }
+/* The arrow travels on transform rather than the row's gap — animating gap
+   relays out the line on every frame, transform does not touch layout. */
+.site-link svg { transition: transform .3s var(--ease); }
+.site:hover .site-link { color: var(--citron); }
+.site:hover .site-link svg { transform: translate(3px, -3px); }
 
 .work-meta { margin-top: 16px; display: flex; gap: 8px; flex-wrap: wrap; }
 .work-meta span {
