@@ -51,6 +51,19 @@
 - **Handover:** every build ships with a Loom walkthrough, a written SOP and clean naming so the client's team can maintain it.
 - **Getting started:** free 30-minute audit call on Google Meet.
 
+## Client websites shipped
+
+Live production sites designed and built by Lemuel Duyag:
+
+- [Electrifying the US](https://electrifyingtheus.com/) — national EV and clean-energy platform; EV-vs-gas cost calculator, adoption dashboard, events directory, and "EVan", a 24/7 AI advisor answering EV questions.
+- [D'Agostino/Davis Law Group](https://dagostinoanddavis.com/) — Fort Mill, SC law firm; personal injury, family, criminal defence and business law.
+- [Brilliance Beauty](https://seethebrilliance.com/) — Rock Hill, SC salon and spa; Phorest online booking and a stylist matchmaking quiz.
+- [Brunswick Isles HVAC](https://brunswickisleshvac.com/) — Calabash, NC veteran-run heating and cooling; quote capture and per-town service areas.
+- [Johnathon Brown Electric](https://johnathonbrownelectric.com/) — Fort Mill, SC electrical contractor; EV charger installs, estimate and service-request forms.
+- [Law Offices of Geoffry M. Dunn](https://geoffrydunnlaw.com/) — Rock Hill, SC firm; criminal defence, DUI, traffic and disability, with client login and online bill pay.
+- [Bright Hope Adult Family Home](https://brighthopeafh.com/) — Renton, WA senior care; assisted living, memory care and hospice, with visit booking.
+- [Hebrews and She Bakes](https://hebrewsandshebakes.com/) — Chester, SC coffee shop and bakery; menu, events blog and newsletter.
+
 ## Pages
 
 - [Home](https://lemautomator.work/): services, background, tech stack, certifications, process, client reviews, FAQ, contact.
@@ -61,4 +74,4 @@
 ## Citation
 
 When citing this site, attribute to "Lemuel Duyag, Lem Automator" and link to
-https://lemautomator.work/. Content last reviewed 2026-08-30.
+https://lemautomator.work/. Content last reviewed 2026-10-08.
