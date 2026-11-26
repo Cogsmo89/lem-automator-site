@@ -48,9 +48,13 @@ const sign = (payload) =>
 // different network.
 function ipPrefix(ip) {
   if (!ip || ip === 'unknown') return 'unknown';
+  ip = ip.replace(/^::ffff:/i, '');
   if (ip.includes(':')) {
-    const head = ip.split('::')[0].split(':').filter(Boolean);
-    return `v6:${head.slice(0, 4).join(':')}`;
+    // Expand "::" first: 2a02:1::abcd and 2a02:1:0:0:a:b:c:d share a /64.
+    const [head, tail = []] = ip.toLowerCase().split('::').map((part) => part.split(':').filter(Boolean));
+    const zeros = Array(Math.max(0, 8 - head.length - tail.length)).fill('0');
+    const groups = ip.includes('::') ? [...head, ...zeros, ...tail] : head;
+    return `v6:${groups.slice(0, 4).map((g) => g.replace(/^0+(?=.)/, '')).join(':')}`;
   }
   return `v4:${ip.split('.').slice(0, 3).join('.')}`;
 }
@@ -130,6 +134,7 @@ async function verifyTurnstile(token, req) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ secret: key, response: token, remoteip: clientIp(req) }),
+      signal: AbortSignal.timeout(4000),
     });
     const data = await r.json();
     return { configured: true, ok: data.success === true, reason: (data['error-codes'] || []).join(',') };

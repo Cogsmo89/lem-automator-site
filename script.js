@@ -1,6 +1,8 @@
 // Year
 document.getElementById('year').textContent = new Date().getFullYear();
 
+const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
 // Reveal on scroll — with a gentle stagger for items sharing a parent
 const io = new IntersectionObserver((entries) => {
   entries.forEach((e) => {
@@ -52,6 +54,7 @@ document.querySelectorAll('.card').forEach((card) => {
 const tiltEls = document.querySelectorAll('.tilt');
 tiltEls.forEach((el) => {
   el.addEventListener('mousemove', (ev) => {
+    if (reduceMotion) return;
     const r = el.getBoundingClientRect();
     const x = (ev.clientX - r.left) / r.width - 0.5;
     const y = (ev.clientY - r.top) / r.height - 0.5;
@@ -64,7 +67,6 @@ tiltEls.forEach((el) => {
 
 // Magnetic primary CTAs — subtle pull toward the cursor (pointer devices only)
 const fine = window.matchMedia('(pointer: fine)').matches;
-const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 if (fine && !reduceMotion) {
   document.querySelectorAll('[data-magnetic]').forEach((el) => {
     const strength = 0.28;
@@ -117,7 +119,13 @@ function mountTurnstile(sitekey) {
   turnstileWidget = window.turnstile.render(slot, { sitekey, theme: 'dark', size: 'flexible' });
 }
 
-// Resolves to { token, sitekey }. Re-issued on demand so a form left open past
+// The server refuses tokens younger than 3s, so hold back until this one passes.
+// A small margin covers clock skew between serverless instances.
+const TOKEN_MIN_AGE_MS = 3250;
+const tokenReady = (guard) =>
+  new Promise((resolve) => setTimeout(resolve, Math.max(0, guard.readyAt - Date.now())));
+
+// Resolves to { token, sitekey, readyAt }. Re-issued on demand so a form left open past
 // the token's lifetime can recover instead of failing the visitor.
 function initGuard({ force = false } = {}) {
   if (force) guardPromise = null;
@@ -126,6 +134,7 @@ function initGuard({ force = false } = {}) {
   guardPromise = fetch('/api/form-token', { credentials: 'same-origin' })
     .then((r) => (r.ok ? r.json() : Promise.reject(new Error('token request failed'))))
     .then(async (data) => {
+      data.readyAt = Date.now() + TOKEN_MIN_AGE_MS;
       if (data.sitekey) {
         try {
           if (!window.turnstile) {
@@ -193,6 +202,7 @@ ${data.message}`
       return;
     }
 
+    await tokenReady(guard);
     data.formToken = guard.token;
     if (guard.sitekey && window.turnstile && turnstileWidget !== null) {
       data.turnstileToken = window.turnstile.getResponse(turnstileWidget) || '';
@@ -207,14 +217,16 @@ ${data.message}`
     let res = await send();
     let payload = await res.json().catch(() => ({}));
 
-    // A token that aged out while the form sat open is recoverable: mint a
-    // fresh one and retry once rather than making the visitor start over.
-    if (res.status === 400 && /expired/i.test(payload.error || '')) {
+    // A token that aged out, or was issued to a network the visitor has since
+    // left, is recoverable: mint a fresh one and retry once rather than making
+    // them start over.
+    if (res.status === 400 && payload.retry) {
       const fresh = await initGuard({ force: true }).catch(() => null);
       if (fresh) {
+        if (window.turnstile && turnstileWidget !== null) window.turnstile.reset(turnstileWidget);
+        await tokenReady(fresh);
         data.formToken = fresh.token;
         if (window.turnstile && turnstileWidget !== null) {
-          window.turnstile.reset(turnstileWidget);
           data.turnstileToken = window.turnstile.getResponse(turnstileWidget) || '';
         }
         res = await send();
@@ -250,7 +262,7 @@ document.querySelectorAll('a[href^="#"]').forEach((a) => {
       const target = document.querySelector(id);
       if (target) {
         ev.preventDefault();
-        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        target.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
       }
     }
   });
@@ -411,12 +423,15 @@ document.querySelectorAll('a[href^="#"]').forEach((a) => {
 
 // Certification logos degrade to a mono badge if the image file is missing.
 document.querySelectorAll('.cert-logo[data-fallback]').forEach((img) => {
-  img.addEventListener('error', () => {
+  const degrade = () => {
     const badge = document.createElement('span');
     badge.className = 'cert-mono';
     badge.textContent = img.dataset.fallback;
     img.replaceWith(badge);
-  }, { once: true });
+  };
+  // The error may already have fired before this deferred script ran.
+  if (img.complete && !img.naturalWidth) degrade();
+  else img.addEventListener('error', degrade, { once: true });
 });
 
 // Cinematic hero backdrop.
@@ -516,8 +531,9 @@ document.querySelectorAll('.cert-logo[data-fallback]').forEach((img) => {
   // window neither keeps decoding a clip it should have dropped nor stays
   // stuck without one it now qualifies for.
   wide.addEventListener('change', () => {
-    if (wide.matches) { loaded ? resume() : load(); }
-    else { pause(); if (toggle) toggle.hidden = true; }
+    if (wide.matches) {
+      if (loaded) { if (toggle) toggle.hidden = false; resume(); } else load();
+    } else { pause(); if (toggle) toggle.hidden = true; }
   });
 
   // WCAG 2.2.2 — motion that starts on its own and loops needs a way to stop it.

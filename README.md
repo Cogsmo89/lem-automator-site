@@ -29,7 +29,7 @@ php -S localhost:8000
 ## Deploy
 
 Push to `main` — Vercel auto-deploys. No build step; the only server-side
-code is the `api/contact.js` function.
+code is in `api/`. `.vercelignore` keeps tooling and tests out of the public site.
 
 Environment variables in Vercel:
 
@@ -51,7 +51,7 @@ skips it. No code change either way.
    `Origin`, which is how the form was being abused.
 2. **Rate limit** — 3 per 10 min and 12 per day per address. In-memory, so it is
    best-effort across serverless instances.
-3. **Honeypots** — `bot-field` and `company_website`.
+3. **Honeypots** — `bot-field` and `homepage_url`.
 4. **Signed token** — HMAC, bound to a hash of the requester's address, valid
    from 3 s to 2 h. Issued by `/api/form-token`.
 5. **Turnstile** — when configured.
@@ -59,7 +59,9 @@ skips it. No code change either way.
    hard threshold the message is dropped; borderline mail is still delivered,
    subject-tagged `[possible spam]`, so a misjudgement never loses a real lead.
 
-Anything rejected as a bot gets `200 OK` so it neither retries nor adapts.
+Anything rejected as a bot gets `200 OK` so it neither retries nor adapts. An
+expired token or a changed network is not treated as a bot: the API answers
+`400` with `retry: true` and the page re-mints the token and resends once.
 
 ## Structure
 
@@ -71,6 +73,7 @@ Anything rejected as a bot gets `200 OK` so it neither retries nor adapts.
 ├── api/contact.js     # Contact form → Resend
 ├── api/form-token.js  # Issues the anti-spam token
 ├── api/_lib/guard.js  # Origin, token, rate limit, spam scoring
+├── tests/             # node --test tests/contact.test.js
 ├── vercel.json        # Headers, caching
 ├── images/            # Logo, portrait, social/tool icons
 ├── robots.txt
