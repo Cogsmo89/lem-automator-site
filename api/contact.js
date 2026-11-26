@@ -47,6 +47,13 @@ module.exports = async (req, res) => {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  // Checked first: every later branch can answer 200, and without this key that
+  // would tell a real visitor their message was sent when it never could be.
+  if (!process.env.RESEND_API_KEY) {
+    console.error('[contact] RESEND_API_KEY is not set');
+    return res.status(500).json({ error: 'Mail is not configured. Please email me directly.' });
+  }
+
   const ip = clientIp(req);
 
   // 1. Origin. A script posting straight at the endpoint sends none.
@@ -70,8 +77,9 @@ module.exports = async (req, res) => {
 
   const body = parseBody(req.body);
 
-  // 3. Honeypots. The original name is kept so older cached pages still pass.
-  if (body['bot-field'] || body.company_website) {
+  // 3. Honeypots. Avoid "company", "email" and the like in these names: browser
+  // autofill would populate the field and bin a real enquiry.
+  if (body['bot-field'] || body.homepage_url) {
     console.warn('[contact] blocked: honeypot', ip);
     return silentOk(res);
   }
@@ -81,7 +89,12 @@ module.exports = async (req, res) => {
   if (!token.ok) {
     console.warn('[contact] blocked: token', token.reason, ip);
     if (token.reason === 'expired') {
-      return res.status(400).json({ error: 'This form expired. Please reload the page and try again.' });
+      return res.status(400).json({ retry: true, error: 'This form expired. Please reload the page and try again.' });
+    }
+    // Wi-Fi to mobile data while typing lands here too. A bot learns nothing it
+    // could not get by asking for a token, but a silent 200 would lose the lead.
+    if (token.reason === 'ip-mismatch') {
+      return res.status(400).json({ retry: true, error: 'Your connection changed. Please send again.' });
     }
     // A fast autofill can genuinely beat the minimum age. Say so rather than
     // dropping the message — silently binning a real enquiry is the worse bug,
@@ -125,11 +138,6 @@ module.exports = async (req, res) => {
   const suspect = score >= SOFT_SCORE;
   if (suspect) console.warn('[contact] flagged: content score', score, reasons.join(','), ip);
 
-  if (!process.env.RESEND_API_KEY) {
-    console.error('[contact] RESEND_API_KEY is not set');
-    return res.status(500).json({ error: 'Mail is not configured. Please email me directly.' });
-  }
-
   const html = `
     <h2>New project inquiry</h2>
     ${suspect ? `<p style="background:#fff4e5;padding:10px;border-left:3px solid #f59e0b">
@@ -156,6 +164,7 @@ module.exports = async (req, res) => {
         subject: `${suspect ? '[possible spam] ' : ''}New project inquiry — ${subjectSafe(name)}`,
         html,
       }),
+      signal: AbortSignal.timeout(5000),
     });
 
     if (!r.ok) {
